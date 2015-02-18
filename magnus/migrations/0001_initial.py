@@ -41,7 +41,7 @@ class Migration(migrations.Migration):
         migrations.CreateModel(
             name='ClientAppUser',
             fields=[
-                ('client_app_user_id', models.AutoField(serialize=False, primary_key=True)),
+                ('client_app_user_id', magnus.models.BigSerialField(serialize=False, primary_key=True)),
                 ('created', models.DateTimeField(auto_now_add=True)),
                 ('updated', models.DateTimeField(auto_now=True)),
             ],
@@ -53,7 +53,7 @@ class Migration(migrations.Migration):
         migrations.CreateModel(
             name='Event',
             fields=[
-                ('event_id', models.AutoField(serialize=False, primary_key=True)),
+                ('event_id', magnus.models.BigSerialField(serialize=False, primary_key=True)),
                 ('event_type', models.CharField(max_length=64, verbose_name=b'Event Type')),
                 ('event_datetime', models.DateTimeField(db_index=True)),
                 ('data', magnus.models.JSONField()),
@@ -62,7 +62,6 @@ class Migration(migrations.Migration):
                 ('updated', models.DateTimeField(auto_now=True)),
             ],
             options={
-                'abstract': False,
                 'db_table': 'events',
             },
             bases=(models.Model,),
@@ -86,7 +85,7 @@ class Migration(migrations.Migration):
         migrations.CreateModel(
             name='FBAppUser',
             fields=[
-                ('app_user_id', models.AutoField(serialize=False, primary_key=True)),
+                ('app_user_id', magnus.models.BigSerialField(serialize=False, primary_key=True)),
                 ('asid', models.BigIntegerField(verbose_name=b'App-scoped ID', db_index=True)),
                 ('app', models.ForeignKey(to='magnus.FBApp')),
                 ('created', models.DateTimeField(auto_now_add=True)),
@@ -128,7 +127,7 @@ class Migration(migrations.Migration):
         migrations.CreateModel(
             name='Person',
             fields=[
-                ('efid', models.AutoField(serialize=False, primary_key=True)),
+                ('efid', magnus.models.BigSerialField(serialize=False, primary_key=True)),
                 ('name', models.CharField(max_length=255, verbose_name=b'Person Name', db_index=True)),
                 ('created', models.DateTimeField(auto_now_add=True)),
                 ('updated', models.DateTimeField(auto_now=True)),
@@ -183,7 +182,7 @@ class Migration(migrations.Migration):
         migrations.AddField(
             model_name='fbappuser',
             name='person',
-            field=models.ForeignKey(to='magnus.Person'),
+            field=models.ForeignKey(to='magnus.Person', db_column=b'efid'),
             preserve_default=True,
         ),
         migrations.AddField(
@@ -213,7 +212,7 @@ class Migration(migrations.Migration):
         migrations.AddField(
             model_name='campaign',
             name='client',
-            field=models.ForeignKey(to='magnus.Client'),
+            field=models.ForeignKey(related_name='campaigns', blank=True, to='magnus.Client', null=True),
             preserve_default=True,
         ),
     ]

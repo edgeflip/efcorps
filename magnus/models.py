@@ -10,6 +10,11 @@ class JSONField(models.Field):
         return 'json'
 
 
+class BigSerialField(models.Field):
+    def db_type(self, connection):
+        return 'bigserial'
+
+
 class TimestampedModel(models.Model):
 
     created = models.DateTimeField(auto_now_add=True)
@@ -48,7 +53,7 @@ class FBPermission(TimestampedModel):
 
 
 class FBAppUser(TimestampedModel):
-    app_user_id = models.AutoField(primary_key=True)
+    app_user_id = BigSerialField(primary_key=True)
     app = models.ForeignKey('FBApp')
     asid = models.BigIntegerField('App-scoped ID', db_index=True)
     person = models.ForeignKey('Person', db_column='efid')
@@ -58,7 +63,7 @@ class FBAppUser(TimestampedModel):
 
 
 class Person(TimestampedModel):
-    efid = models.AutoField(primary_key=True)
+    efid = BigSerialField(primary_key=True)
     name = models.CharField('Person Name', max_length=255, db_index=True)
 
     class Meta(object):
@@ -80,7 +85,6 @@ class Campaign(TimestampedModel):
     client = models.ForeignKey('Client', null=True, blank=True, related_name='campaigns')
     name = models.CharField('Campaign Name', max_length=255)
 
-
     class Meta(object):
         db_table = 'campaigns'
 
@@ -94,7 +98,7 @@ class Client(TimestampedModel):
 
 
 class ClientAppUser(TimestampedModel):
-    client_app_user_id = models.AutoField(primary_key=True)
+    client_app_user_id = BigSerialField(primary_key=True)
     client = models.ForeignKey('Client')
     app_user = models.ForeignKey('FBAppUser')
 
@@ -103,7 +107,7 @@ class ClientAppUser(TimestampedModel):
 
 
 class Event(TimestampedModel):
-    event_id = models.AutoField(primary_key=True)
+    event_id = BigSerialField(primary_key=True)
     visit = models.ForeignKey('Visit')
     event_type = models.CharField('Event Type', max_length=64)
     campaign = models.ForeignKey('Campaign')
