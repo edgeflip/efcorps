@@ -10,7 +10,7 @@ class JSONField(models.Field):
         return 'json'
 
 
-class BigSerialField(models.Field):
+class BigSerialField(models.AutoField):
     def db_type(self, connection):
         return 'bigserial'
 
@@ -119,7 +119,7 @@ class Event(TimestampedModel):
 
 
 class Visit(TimestampedModel):
-    visit_id = models.AutoField(primary_key=True)
+    visit_id = BigSerialField(primary_key=True)
     visitor = models.ForeignKey('Visitor', related_name='visits')
     session_id = models.CharField(db_index=True, max_length=40)
     app_id = models.BigIntegerField(db_column='appid')
@@ -138,7 +138,7 @@ class Visit(TimestampedModel):
 
 class Visitor(TimestampedModel):
 
-    visitor_id = models.AutoField(primary_key=True)
+    visitor_id = BigSerialField(primary_key=True)
     uuid = models.CharField(unique=True, max_length=40)
     fbid = models.BigIntegerField(unique=True, null=True, blank=True)
 

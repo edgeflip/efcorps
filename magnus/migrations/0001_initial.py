@@ -140,7 +140,7 @@ class Migration(migrations.Migration):
         migrations.CreateModel(
             name='Visit',
             fields=[
-                ('visit_id', models.AutoField(serialize=False, primary_key=True)),
+                ('visit_id', magnus.models.BigSerialField(serialize=False, primary_key=True)),
                 ('session_id', models.CharField(max_length=40, db_index=True)),
                 ('app_id', models.BigIntegerField(db_column=b'appid')),
                 ('ip', models.GenericIPAddressField()),
@@ -158,7 +158,7 @@ class Migration(migrations.Migration):
         migrations.CreateModel(
             name='Visitor',
             fields=[
-                ('visitor_id', models.AutoField(serialize=False, primary_key=True)),
+                ('visitor_id', magnus.models.BigSerialField(serialize=False, primary_key=True)),
                 ('uuid', models.CharField(unique=True, max_length=40)),
                 ('fbid', models.BigIntegerField(unique=True, null=True, blank=True)),
                 ('created', models.DateTimeField(auto_now_add=True)),
