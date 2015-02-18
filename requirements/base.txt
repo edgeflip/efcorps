@@ -1,2 +1,3 @@
 Django>=1.6.8
-jsonfield
+-e git+git@github.com:systemadev/pymlconf.git#egg=pymlconf
+psycopg2

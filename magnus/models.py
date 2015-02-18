@@ -2,9 +2,12 @@ from decimal import Decimal
 from django.utils.crypto import get_random_string
 import string
 
-from jsonfield import JSONField
-
 from django.db import models
+
+
+class JSONField(models.Field):
+    def db_type(self, connection):
+        return 'json'
 
 
 class TimestampedModel(models.Model):
