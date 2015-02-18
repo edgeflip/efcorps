@@ -7,7 +7,19 @@ from jsonfield import JSONField
 from django.db import models
 
 
-class FBApp(models.Model):
+class TimestampedModel(models.Model):
+
+    created = models.DateTimeField(auto_now_add=True)
+    updated = models.DateTimeField(auto_now=True)
+
+    class Meta(object):
+        abstract = True
+
+    def __str__(self):
+        return unicode(self).encode('utf8')
+
+
+class FBApp(TimestampedModel):
     appid = models.BigIntegerField('FB App ID', primary_key=True)
     name = models.CharField('FB App Namespace', max_length=255, unique=True)
     secret = models.CharField('FB App Secret', max_length=32)
@@ -23,7 +35,7 @@ class FBApp(models.Model):
         return self.name
 
 
-class FBPermission(models.Model):
+class FBPermission(TimestampedModel):
 
     code = models.SlugField(max_length=64, primary_key=True)
 
@@ -35,47 +47,53 @@ class FBPermission(models.Model):
         return self.code
 
 
-class FBAppUser(models.Model):
+class FBAppUser(TimestampedModel):
+    app_user_id = models.AutoField(primary_key=True)
     app = models.ForeignKey('FBApp')
-    asid = models.BigIntegerField('App-scoped ID')
+    asid = models.BigIntegerField('App-scoped ID', db_index=True)
     person = models.ForeignKey('Person')
 
     class Meta(object):
         db_table = 'fb_app_users'
 
 
-class Person(models.Model):
-    name = models.CharField('Person Name')
+class Person(TimestampedModel):
+    efid = models.AutoField(primary_key=True)
+    name = models.CharField('Person Name', max_length=255, db_index=True)
 
     class Meta(object):
         db_table = 'persons'
 
 
-class FBUserToken(models.Model):
+class FBUserToken(TimestampedModel):
+    user_token_id = models.AutoField(primary_key=True)
     app_user = models.ForeignKey('FBAppUser')
-    access_token = models.CharField('Access Token')
+    access_token = models.TextField('Access Token', unique=True)
     expiration = models.DateTimeField()
 
     class Meta(object):
         db_table = 'fb_user_tokens'
 
 
-class Campaign(models.Model):
+class Campaign(TimestampedModel):
+    campaign_id = models.AutoField(primary_key=True)
     client = models.ForeignKey('Client')
-    name = models.CharField('Campaign Name')
+    name = models.CharField('Campaign Name', max_length=255)
 
     class Meta(object):
         db_table = 'campaigns'
 
 
-class Client(models.Model):
-    name = models.CharField('Client Name')
+class Client(TimestampedModel):
+    client_id = models.AutoField(primary_key=True)
+    name = models.CharField('Client Name', max_length=255)
 
     class Meta(object):
         db_table = 'clients'
 
 
-class ClientAppUser(models.Model):
+class ClientAppUser(TimestampedModel):
+    client_app_user_id = models.AutoField(primary_key=True)
     client = models.ForeignKey('Client')
     app_user = models.ForeignKey('FBAppUser')
 
@@ -83,15 +101,16 @@ class ClientAppUser(models.Model):
         db_table = 'client_app_users'
 
 
-class Event(models.Model):
+class Event(TimestampedModel):
+    event_id = models.AutoField(primary_key=True)
     visit = models.ForeignKey('Visit')
-    event_type = models.CharField('Event Type')
+    event_type = models.CharField('Event Type', max_length=64)
     campaign = models.ForeignKey('Campaign')
-    event_datetime = models.DateTimeField()
+    event_datetime = models.DateTimeField(db_index=True)
     data = JSONField()
 
 
-class Visit(models.Model):
+class Visit(TimestampedModel):
     visit_id = models.AutoField(primary_key=True)
     visitor = models.ForeignKey('Visitor', related_name='visits')
     session_id = models.CharField(db_index=True, max_length=40)
@@ -99,9 +118,6 @@ class Visit(models.Model):
     ip = models.GenericIPAddressField()
     user_agent = models.CharField(blank=True, default='', max_length=1028)
     referer = models.CharField(blank=True, default='', max_length=1028)
-    source = models.CharField(blank=True, default='', db_index=True, max_length=256)
-    updated = models.DateTimeField(auto_now=True)
-    created = models.DateTimeField(auto_now_add=True)
 
     class Meta(object):
         db_table = 'visits'
@@ -112,13 +128,11 @@ class Visit(models.Model):
         return u"{} [{}]".format(self.session_id, self.app_id)
 
 
-class Visitor(models.Model):
+class Visitor(TimestampedModel):
 
     visitor_id = models.AutoField(primary_key=True)
     uuid = models.CharField(unique=True, max_length=40)
     fbid = models.BigIntegerField(unique=True, null=True, blank=True)
-    updated = models.DateTimeField(auto_now=True)
-    created = models.DateTimeField(auto_now_add=True)
 
     class Meta(object):
         db_table = 'visitors'
