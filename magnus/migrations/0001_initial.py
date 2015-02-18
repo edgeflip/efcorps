@@ -63,6 +63,7 @@ class Migration(migrations.Migration):
             ],
             options={
                 'abstract': False,
+                'db_table': 'events',
             },
             bases=(models.Model,),
         ),

@@ -18,9 +18,6 @@ class TimestampedModel(models.Model):
     class Meta(object):
         abstract = True
 
-    def __str__(self):
-        return unicode(self).encode('utf8')
-
 
 class FBApp(TimestampedModel):
     appid = models.BigIntegerField('FB App ID', primary_key=True)
@@ -54,7 +51,7 @@ class FBAppUser(TimestampedModel):
     app_user_id = models.AutoField(primary_key=True)
     app = models.ForeignKey('FBApp')
     asid = models.BigIntegerField('App-scoped ID', db_index=True)
-    person = models.ForeignKey('Person')
+    person = models.ForeignKey('Person', db_column='efid')
 
     class Meta(object):
         db_table = 'fb_app_users'
@@ -80,8 +77,9 @@ class FBUserToken(TimestampedModel):
 
 class Campaign(TimestampedModel):
     campaign_id = models.AutoField(primary_key=True)
-    client = models.ForeignKey('Client')
+    client = models.ForeignKey('Client', null=True, blank=True, related_name='campaigns')
     name = models.CharField('Campaign Name', max_length=255)
+
 
     class Meta(object):
         db_table = 'campaigns'
@@ -111,6 +109,9 @@ class Event(TimestampedModel):
     campaign = models.ForeignKey('Campaign')
     event_datetime = models.DateTimeField(db_index=True)
     data = JSONField()
+
+    class Meta(object):
+        db_table = 'events'
 
 
 class Visit(TimestampedModel):
