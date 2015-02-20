@@ -5,7 +5,7 @@ import sys
 import ez_setup
 ez_setup.use_setuptools()
 
-from setuptools import find_packages, setup
+from setuptools import setup
 
 
 PACKAGE = 'efcorps'
@@ -41,12 +41,12 @@ def get_requirements(name):
 
 
 setup(
-    name=PACKAGE.title(),
+    name=PACKAGE,
     description="Shared models for various Edgeflip repos",
     long_description=get_long_description(),
     version='0.1',
     py_modules=get_py_modules(),
-    packages=find_packages('.'),
+    packages=['magnus'],
     install_requires=get_requirements('base'),
     maintainer="Edgeflip Developers",
     maintainer_email="devs@edgeflip.com",
