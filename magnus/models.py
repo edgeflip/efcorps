@@ -1,13 +1,36 @@
 from decimal import Decimal
 from django.utils.crypto import get_random_string
+from django.core.exceptions import ValidationError
 import string
+import json
+from south.modelsinspector import add_introspection_rules
 
 from django.db import models
+
+add_introspection_rules([], ["^magnus\.models\.JSONField"])
+add_introspection_rules([], ["^magnus\.models\.BigSerialField"])
 
 
 class JSONField(models.Field):
     def db_type(self, connection):
         return 'json'
+
+    def get_prep_value(self, value):
+        return json.dumps(value)
+
+    def to_python(self, value):
+        if isinstance(value, basestring):
+            try:
+                return json.loads(value)
+            except ValueError, exc:
+                raise ValidationError(exc)
+
+        try:
+            self.get_prep_value(value)
+        except ValueError, exc:
+            raise ValidationError(exc)
+        else:
+            return value
 
 
 class BigSerialField(models.AutoField):
@@ -28,9 +51,9 @@ class FBApp(TimestampedModel):
     appid = models.BigIntegerField('FB App ID', primary_key=True)
     name = models.CharField('FB App Namespace', max_length=255, unique=True)
     secret = models.CharField('FB App Secret', max_length=32)
-    api = models.DecimalField('FB API Version', max_digits=3, decimal_places=1,
+    current_api = models.DecimalField('FB API Version', max_digits=3, decimal_places=1,
                               default=Decimal('2.2'))
-    permissions = models.ManyToManyField('FBPermission', blank=True)
+    current_permissions = models.ManyToManyField('FBPermission', blank=True)
 
     class Meta(object):
         db_table = 'fb_apps'
@@ -56,25 +79,27 @@ class FBAppUser(TimestampedModel):
     app_user_id = BigSerialField(primary_key=True)
     app = models.ForeignKey('FBApp')
     asid = models.BigIntegerField('App-scoped ID', db_index=True)
-    person = models.ForeignKey('Person', db_column='efid')
+    ef_user = models.ForeignKey('EFUser', db_column='efid')
 
     class Meta(object):
         db_table = 'fb_app_users'
 
 
-class Person(TimestampedModel):
+class EFUser(TimestampedModel):
     efid = BigSerialField(primary_key=True)
     name = models.CharField('Person Name', max_length=255, db_index=True)
 
     class Meta(object):
-        db_table = 'persons'
+        db_table = 'ef_users'
 
 
 class FBUserToken(TimestampedModel):
-    user_token_id = models.AutoField(primary_key=True)
+    user_token_id = BigSerialField(primary_key=True)
     app_user = models.ForeignKey('FBAppUser')
-    access_token = models.TextField('Access Token', unique=True)
-    expiration = models.DateTimeField()
+    access_token = models.TextField('Access Token')
+    expiration = models.DateTimeField(db_index=True)
+    api = models.DecimalField('FB API Version', max_digits=3, decimal_places=1,
+                              default=Decimal('2.2'))
 
     class Meta(object):
         db_table = 'fb_user_tokens'
@@ -82,7 +107,7 @@ class FBUserToken(TimestampedModel):
 
 class Campaign(TimestampedModel):
     campaign_id = models.AutoField(primary_key=True)
-    client = models.ForeignKey('Client', null=True, blank=True, related_name='campaigns')
+    client = models.ForeignKey('Client', related_name='campaigns')
     name = models.CharField('Campaign Name', max_length=255)
 
     class Meta(object):
@@ -92,6 +117,8 @@ class Campaign(TimestampedModel):
 class Client(TimestampedModel):
     client_id = models.AutoField(primary_key=True)
     name = models.CharField('Client Name', max_length=255)
+    codename = models.SlugField(unique=True, blank=True, editable=False)
+    app_users = models.ManyToManyField('FBAppUser', through='ClientAppUser')
 
     class Meta(object):
         db_table = 'clients'
@@ -104,6 +131,7 @@ class ClientAppUser(TimestampedModel):
 
     class Meta(object):
         db_table = 'client_app_users'
+        unique_together = ('client', 'app_user')
 
 
 class Event(TimestampedModel):
@@ -140,7 +168,7 @@ class Visitor(TimestampedModel):
 
     visitor_id = BigSerialField(primary_key=True)
     uuid = models.CharField(unique=True, max_length=40)
-    fbid = models.BigIntegerField(unique=True, null=True, blank=True)
+    efid = models.BigIntegerField(unique=True, null=True, blank=True)
 
     class Meta(object):
         db_table = 'visitors'
@@ -160,4 +188,4 @@ class Visitor(TimestampedModel):
         return super(Visitor, self).save(*args, **kws)
 
     def __unicode__(self):
-        return u"{} [{}]".format(self.uuid, self.fbid or '')
+        return u"{} [{}]".format(self.uuid, self.efid or '')
