@@ -12,6 +12,8 @@ add_introspection_rules([], ["^magnus\.models\.BigSerialField"])
 
 
 class JSONField(models.Field):
+    __metaclass__ = models.SubfieldBase
+
     def db_type(self, connection):
         return 'json'
 
@@ -34,6 +36,8 @@ class JSONField(models.Field):
 
 
 class BigSerialField(models.AutoField):
+    __metaclass__ = models.SubfieldBase
+
     def db_type(self, connection):
         return 'bigserial'
 
