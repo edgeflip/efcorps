@@ -1,4 +1,4 @@
 South==1.0.2
 Django==1.6.8
--e git+git@github.com:systemadev/pymlconf.git#egg=pymlconf
+pymlconf
 psycopg2
