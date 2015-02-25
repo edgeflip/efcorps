@@ -40,7 +40,7 @@ class Migration(SchemaMigration):
         db.create_table('fb_app_users', (
             ('app_user_id', self.gf('magnus.models.BigSerialField')(primary_key=True)),
             ('app', self.gf('django.db.models.fields.related.ForeignKey')(to=orm['magnus.FBApp'])),
-            ('asid', self.gf('django.db.models.fields.BigIntegerField')(db_index=True)),
+            ('fbid', self.gf('django.db.models.fields.BigIntegerField')(db_index=True)),
             ('ef_user', self.gf('django.db.models.fields.related.ForeignKey')(to=orm['magnus.EFUser'], db_column='efid')),
             ('created', self.gf('django.db.models.fields.DateTimeField')(auto_now_add=True, blank=True)),
             ('updated', self.gf('django.db.models.fields.DateTimeField')(auto_now=True, blank=True)),
@@ -244,9 +244,9 @@ class Migration(SchemaMigration):
             'Meta': {'object_name': 'FBAppUser', 'db_table': "'fb_app_users'"},
             'app': ('django.db.models.fields.related.ForeignKey', [], {'to': u"orm['magnus.FBApp']"}),
             'app_user_id': ('magnus.models.BigSerialField', [], {'primary_key': 'True'}),
-            'asid': ('django.db.models.fields.BigIntegerField', [], {'db_index': 'True'}),
             'created': ('django.db.models.fields.DateTimeField', [], {'auto_now_add': 'True', 'blank': 'True'}),
             'ef_user': ('django.db.models.fields.related.ForeignKey', [], {'to': u"orm['magnus.EFUser']", 'db_column': "'efid'"}),
+            'fbid': ('django.db.models.fields.BigIntegerField', [], {'db_index': 'True'}),
             'updated': ('django.db.models.fields.DateTimeField', [], {'auto_now': 'True', 'blank': 'True'})
         },
         u'magnus.fbpermission': {

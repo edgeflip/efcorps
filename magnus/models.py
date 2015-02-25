@@ -78,7 +78,7 @@ class FBPermission(TimestampedModel):
 class FBAppUser(TimestampedModel):
     app_user_id = BigSerialField(primary_key=True)
     app = models.ForeignKey('FBApp')
-    asid = models.BigIntegerField('App-scoped ID', db_index=True)
+    fbid = models.BigIntegerField('App-scoped Facebook ID', db_index=True)
     ef_user = models.ForeignKey('EFUser', db_column='efid')
 
     class Meta(object):
