@@ -28,7 +28,7 @@ setup(
     name=PACKAGE,
     description="Shared models for various Edgeflip repos",
     long_description=get_long_description(),
-    version='0.1',
+    version='0.1.3',
     packages=['magnus'],
     install_requires=get_requirements('base'),
     maintainer="Edgeflip Developers",
