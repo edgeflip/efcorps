@@ -19,14 +19,18 @@ class Migration(SchemaMigration):
         ))
         db.send_create_signal(u'magnus', ['FBApp'])
 
-        # Adding M2M table for field current_permissions on 'FBApp'
-        m2m_table_name = db.shorten_name('fb_apps_current_permissions')
-        db.create_table(m2m_table_name, (
-            ('id', models.AutoField(verbose_name='ID', primary_key=True, auto_created=True)),
-            ('fbapp', models.ForeignKey(orm[u'magnus.fbapp'], null=False)),
-            ('fbpermission', models.ForeignKey(orm[u'magnus.fbpermission'], null=False))
+        # Adding model 'FBAppPermission'
+        db.create_table('fb_app_permissions', (
+            ('fb_app_permission_id', self.gf('django.db.models.fields.AutoField')(primary_key=True)),
+            ('app', self.gf('django.db.models.fields.related.ForeignKey')(to=orm['magnus.FBApp'])),
+            ('permission', self.gf('django.db.models.fields.related.ForeignKey')(to=orm['magnus.FBPermission'])),
+            ('created', self.gf('django.db.models.fields.DateTimeField')(auto_now_add=True, blank=True)),
+            ('updated', self.gf('django.db.models.fields.DateTimeField')(auto_now=True, blank=True)),
         ))
-        db.create_unique(m2m_table_name, ['fbapp_id', 'fbpermission_id'])
+        db.send_create_signal(u'magnus', ['FBAppPermission'])
+
+        # Adding unique constraint on 'FBAppPermission', fields ['app', 'permission']
+        db.create_unique('fb_app_permissions', ['app_id', 'permission_id'])
 
         # Adding model 'FBPermission'
         db.create_table('fb_permissions', (
@@ -39,7 +43,7 @@ class Migration(SchemaMigration):
         # Adding model 'FBAppUser'
         db.create_table('fb_app_users', (
             ('app_user_id', self.gf('magnus.models.BigSerialField')(primary_key=True)),
-            ('app', self.gf('django.db.models.fields.related.ForeignKey')(to=orm['magnus.FBApp'])),
+            ('fb_app', self.gf('django.db.models.fields.related.ForeignKey')(to=orm['magnus.FBApp'])),
             ('fbid', self.gf('django.db.models.fields.BigIntegerField')(db_index=True)),
             ('ef_user', self.gf('django.db.models.fields.related.ForeignKey')(to=orm['magnus.EFUser'], db_column='efid')),
             ('created', self.gf('django.db.models.fields.DateTimeField')(auto_now_add=True, blank=True)),
@@ -143,17 +147,11 @@ class Migration(SchemaMigration):
 
 
     def backwards(self, orm):
-        # Removing unique constraint on 'Visit', fields ['session_id', 'app_id']
-        db.delete_unique('visits', ['session_id', 'appid'])
-
-        # Removing unique constraint on 'ClientAppUser', fields ['client', 'app_user']
-        db.delete_unique('client_app_users', ['client_id', 'app_user_id'])
-
         # Deleting model 'FBApp'
         db.delete_table('fb_apps')
 
-        # Removing M2M table for field current_permissions on 'FBApp'
-        db.delete_table(db.shorten_name('fb_apps_current_permissions'))
+        # Deleting model 'FBAppPermission'
+        db.delete_table('fb_app_permissions')
 
         # Deleting model 'FBPermission'
         db.delete_table('fb_permissions')
@@ -235,17 +233,25 @@ class Migration(SchemaMigration):
             'appid': ('django.db.models.fields.BigIntegerField', [], {'primary_key': 'True'}),
             'created': ('django.db.models.fields.DateTimeField', [], {'auto_now_add': 'True', 'blank': 'True'}),
             'current_api': ('django.db.models.fields.DecimalField', [], {'default': "'2.2'", 'max_digits': '3', 'decimal_places': '1'}),
-            'current_permissions': ('django.db.models.fields.related.ManyToManyField', [], {'to': u"orm['magnus.FBPermission']", 'symmetrical': 'False', 'blank': 'True'}),
+            'current_permissions': ('django.db.models.fields.related.ManyToManyField', [], {'to': u"orm['magnus.FBPermission']", 'symmetrical': 'False', 'through': u"orm['magnus.FBAppPermission']", 'blank': 'True'}),
             'name': ('django.db.models.fields.CharField', [], {'unique': 'True', 'max_length': '255'}),
             'secret': ('django.db.models.fields.CharField', [], {'max_length': '32'}),
             'updated': ('django.db.models.fields.DateTimeField', [], {'auto_now': 'True', 'blank': 'True'})
         },
+        u'magnus.fbapppermission': {
+            'Meta': {'unique_together': "(('app', 'permission'),)", 'object_name': 'FBAppPermission', 'db_table': "'fb_app_permissions'"},
+            'app': ('django.db.models.fields.related.ForeignKey', [], {'to': u"orm['magnus.FBApp']"}),
+            'created': ('django.db.models.fields.DateTimeField', [], {'auto_now_add': 'True', 'blank': 'True'}),
+            'fb_app_permission_id': ('django.db.models.fields.AutoField', [], {'primary_key': 'True'}),
+            'permission': ('django.db.models.fields.related.ForeignKey', [], {'to': u"orm['magnus.FBPermission']"}),
+            'updated': ('django.db.models.fields.DateTimeField', [], {'auto_now': 'True', 'blank': 'True'})
+        },
         u'magnus.fbappuser': {
             'Meta': {'object_name': 'FBAppUser', 'db_table': "'fb_app_users'"},
-            'app': ('django.db.models.fields.related.ForeignKey', [], {'to': u"orm['magnus.FBApp']"}),
             'app_user_id': ('magnus.models.BigSerialField', [], {'primary_key': 'True'}),
             'created': ('django.db.models.fields.DateTimeField', [], {'auto_now_add': 'True', 'blank': 'True'}),
             'ef_user': ('django.db.models.fields.related.ForeignKey', [], {'to': u"orm['magnus.EFUser']", 'db_column': "'efid'"}),
+            'fb_app': ('django.db.models.fields.related.ForeignKey', [], {'to': u"orm['magnus.FBApp']"}),
             'fbid': ('django.db.models.fields.BigIntegerField', [], {'db_index': 'True'}),
             'updated': ('django.db.models.fields.DateTimeField', [], {'auto_now': 'True', 'blank': 'True'})
         },

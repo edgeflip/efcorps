@@ -38,22 +38,23 @@ class BigSerialField(models.AutoField):
         return 'bigserial'
 
 
-class TimestampedModel(models.Model):
+class BaseModel(models.Model):
 
     created = models.DateTimeField(auto_now_add=True)
     updated = models.DateTimeField(auto_now=True)
 
     class Meta(object):
         abstract = True
+        app_label = 'magnus'
 
 
-class FBApp(TimestampedModel):
+class FBApp(BaseModel):
     appid = models.BigIntegerField('FB App ID', primary_key=True)
     name = models.CharField('FB App Namespace', max_length=255, unique=True)
     secret = models.CharField('FB App Secret', max_length=32)
     current_api = models.DecimalField('FB API Version', max_digits=3, decimal_places=1,
                               default=Decimal('2.2'))
-    current_permissions = models.ManyToManyField('FBPermission', blank=True)
+    current_permissions = models.ManyToManyField('FBPermission', through='FBAppPermission', blank=True)
 
     class Meta(object):
         db_table = 'fb_apps'
@@ -63,7 +64,17 @@ class FBApp(TimestampedModel):
         return self.name
 
 
-class FBPermission(TimestampedModel):
+class FBAppPermission(BaseModel):
+    fb_app_permission_id = models.AutoField(primary_key=True)
+    app = models.ForeignKey('FBApp')
+    permission = models.ForeignKey('FBPermission')
+
+    class Meta(object):
+        db_table = 'fb_app_permissions'
+        unique_together = ('app', 'permission')
+
+
+class FBPermission(BaseModel):
 
     code = models.SlugField(max_length=64, primary_key=True)
 
@@ -75,9 +86,9 @@ class FBPermission(TimestampedModel):
         return self.code
 
 
-class FBAppUser(TimestampedModel):
+class FBAppUser(BaseModel):
     app_user_id = BigSerialField(primary_key=True)
-    app = models.ForeignKey('FBApp')
+    fb_app = models.ForeignKey('FBApp')
     fbid = models.BigIntegerField('App-scoped Facebook ID', db_index=True)
     ef_user = models.ForeignKey('EFUser', db_column='efid')
 
@@ -85,7 +96,7 @@ class FBAppUser(TimestampedModel):
         db_table = 'fb_app_users'
 
 
-class EFUser(TimestampedModel):
+class EFUser(BaseModel):
     efid = BigSerialField(primary_key=True)
     name = models.CharField('Person Name', max_length=255, db_index=True)
 
@@ -93,7 +104,7 @@ class EFUser(TimestampedModel):
         db_table = 'ef_users'
 
 
-class FBUserToken(TimestampedModel):
+class FBUserToken(BaseModel):
     user_token_id = BigSerialField(primary_key=True)
     app_user = models.ForeignKey('FBAppUser')
     access_token = models.TextField('Access Token')
@@ -105,7 +116,7 @@ class FBUserToken(TimestampedModel):
         db_table = 'fb_user_tokens'
 
 
-class Campaign(TimestampedModel):
+class Campaign(BaseModel):
     campaign_id = models.AutoField(primary_key=True)
     client = models.ForeignKey('Client', related_name='campaigns')
     name = models.CharField('Campaign Name', max_length=255)
@@ -114,7 +125,7 @@ class Campaign(TimestampedModel):
         db_table = 'campaigns'
 
 
-class Client(TimestampedModel):
+class Client(BaseModel):
     client_id = models.AutoField(primary_key=True)
     name = models.CharField('Client Name', max_length=255)
     codename = models.SlugField(unique=True, blank=True, editable=False)
@@ -124,7 +135,7 @@ class Client(TimestampedModel):
         db_table = 'clients'
 
 
-class ClientAppUser(TimestampedModel):
+class ClientAppUser(BaseModel):
     client_app_user_id = BigSerialField(primary_key=True)
     client = models.ForeignKey('Client')
     app_user = models.ForeignKey('FBAppUser')
@@ -134,7 +145,7 @@ class ClientAppUser(TimestampedModel):
         unique_together = ('client', 'app_user')
 
 
-class Event(TimestampedModel):
+class Event(BaseModel):
     event_id = BigSerialField(primary_key=True)
     visit = models.ForeignKey('Visit')
     event_type = models.CharField('Event Type', max_length=64)
@@ -146,7 +157,7 @@ class Event(TimestampedModel):
         db_table = 'events'
 
 
-class Visit(TimestampedModel):
+class Visit(BaseModel):
     visit_id = BigSerialField(primary_key=True)
     visitor = models.ForeignKey('Visitor', related_name='visits')
     session_id = models.CharField(db_index=True, max_length=40)
@@ -164,7 +175,7 @@ class Visit(TimestampedModel):
         return u"{} [{}]".format(self.session_id, self.app_id)
 
 
-class Visitor(TimestampedModel):
+class Visitor(BaseModel):
 
     visitor_id = BigSerialField(primary_key=True)
     uuid = models.CharField(unique=True, max_length=40)
