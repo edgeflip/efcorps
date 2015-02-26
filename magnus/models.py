@@ -9,6 +9,7 @@ from django.db import models
 
 add_introspection_rules([], ["^magnus\.models\.JSONField"])
 add_introspection_rules([], ["^magnus\.models\.BigSerialField"])
+add_introspection_rules([], ["^magnus\.models.FlexibleForeignKey"])
 
 
 class JSONField(models.Field):
@@ -36,10 +37,23 @@ class JSONField(models.Field):
 
 
 class BigSerialField(models.AutoField):
-    __metaclass__ = models.SubfieldBase
 
     def db_type(self, connection):
         return 'bigserial'
+
+    def get_related_db_type(self, connection):
+        return models.BigIntegerField().db_type(connection)
+
+    def get_internal_type(self):
+        return "BigIntegerField"
+
+
+class FlexibleForeignKey(models.ForeignKey):
+    def db_type(self, connection):
+        rel_field = self.related_field
+        if hasattr(rel_field, 'get_related_db_type'):
+            return rel_field.get_related_db_type(connection)
+        return super(FlexibleForeignKey, self).db_type(connection)
 
 
 class BaseModel(models.Model):
@@ -94,7 +108,7 @@ class FBAppUser(BaseModel):
     app_user_id = BigSerialField(primary_key=True)
     fb_app = models.ForeignKey('FBApp')
     fbid = models.BigIntegerField('App-scoped Facebook ID', db_index=True)
-    ef_user = models.ForeignKey('EFUser', db_column='efid')
+    ef_user = FlexibleForeignKey('EFUser', db_column='efid')
 
     class Meta(object):
         db_table = 'fb_app_users'
@@ -102,7 +116,8 @@ class FBAppUser(BaseModel):
 
 class EFUser(BaseModel):
     efid = BigSerialField(primary_key=True)
-    name = models.CharField('Person Name', max_length=255, db_index=True)
+    name = models.CharField('Person Name', max_length=255, null=True, blank=True)
+    email = models.CharField('Email Address', max_length=255, db_index=True)
 
     class Meta(object):
         db_table = 'ef_users'

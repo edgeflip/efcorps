@@ -45,7 +45,7 @@ class Migration(SchemaMigration):
             ('app_user_id', self.gf('magnus.models.BigSerialField')(primary_key=True)),
             ('fb_app', self.gf('django.db.models.fields.related.ForeignKey')(to=orm['magnus.FBApp'])),
             ('fbid', self.gf('django.db.models.fields.BigIntegerField')(db_index=True)),
-            ('ef_user', self.gf('django.db.models.fields.related.ForeignKey')(to=orm['magnus.EFUser'], db_column='efid')),
+            ('ef_user', self.gf('magnus.models.FlexibleForeignKey')(to=orm['magnus.EFUser'], db_column='efid')),
             ('created', self.gf('django.db.models.fields.DateTimeField')(auto_now_add=True, blank=True)),
             ('updated', self.gf('django.db.models.fields.DateTimeField')(auto_now=True, blank=True)),
         ))
@@ -54,7 +54,8 @@ class Migration(SchemaMigration):
         # Adding model 'EFUser'
         db.create_table('ef_users', (
             ('efid', self.gf('magnus.models.BigSerialField')(primary_key=True)),
-            ('name', self.gf('django.db.models.fields.CharField')(max_length=255, db_index=True)),
+            ('name', self.gf('django.db.models.fields.CharField')(max_length=255, null=True, blank=True)),
+            ('email', self.gf('django.db.models.fields.CharField')(max_length=255, db_index=True)),
             ('created', self.gf('django.db.models.fields.DateTimeField')(auto_now_add=True, blank=True)),
             ('updated', self.gf('django.db.models.fields.DateTimeField')(auto_now=True, blank=True)),
         ))
@@ -214,7 +215,8 @@ class Migration(SchemaMigration):
             'Meta': {'object_name': 'EFUser', 'db_table': "'ef_users'"},
             'created': ('django.db.models.fields.DateTimeField', [], {'auto_now_add': 'True', 'blank': 'True'}),
             'efid': ('magnus.models.BigSerialField', [], {'primary_key': 'True'}),
-            'name': ('django.db.models.fields.CharField', [], {'max_length': '255', 'db_index': 'True'}),
+            'email': ('django.db.models.fields.CharField', [], {'max_length': '255', 'db_index': 'True'}),
+            'name': ('django.db.models.fields.CharField', [], {'max_length': '255', 'null': 'True', 'blank': 'True'}),
             'updated': ('django.db.models.fields.DateTimeField', [], {'auto_now': 'True', 'blank': 'True'})
         },
         u'magnus.event': {
@@ -250,7 +252,7 @@ class Migration(SchemaMigration):
             'Meta': {'object_name': 'FBAppUser', 'db_table': "'fb_app_users'"},
             'app_user_id': ('magnus.models.BigSerialField', [], {'primary_key': 'True'}),
             'created': ('django.db.models.fields.DateTimeField', [], {'auto_now_add': 'True', 'blank': 'True'}),
-            'ef_user': ('django.db.models.fields.related.ForeignKey', [], {'to': u"orm['magnus.EFUser']", 'db_column': "'efid'"}),
+            'ef_user': ('magnus.models.FlexibleForeignKey', [], {'to': u"orm['magnus.EFUser']", 'db_column': "'efid'"}),
             'fb_app': ('django.db.models.fields.related.ForeignKey', [], {'to': u"orm['magnus.FBApp']"}),
             'fbid': ('django.db.models.fields.BigIntegerField', [], {'db_index': 'True'}),
             'updated': ('django.db.models.fields.DateTimeField', [], {'auto_now': 'True', 'blank': 'True'})
