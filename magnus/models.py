@@ -125,7 +125,7 @@ class EFUser(BaseModel):
 
 class FBUserToken(BaseModel):
     user_token_id = BigSerialField(primary_key=True)
-    app_user = models.ForeignKey('FBAppUser')
+    app_user = FlexibleForeignKey('FBAppUser')
     access_token = models.TextField('Access Token')
     expiration = models.DateTimeField(db_index=True)
     api = models.DecimalField('FB API Version', max_digits=3, decimal_places=1,
@@ -157,7 +157,7 @@ class Client(BaseModel):
 class ClientAppUser(BaseModel):
     client_app_user_id = BigSerialField(primary_key=True)
     client = models.ForeignKey('Client')
-    app_user = models.ForeignKey('FBAppUser')
+    app_user = FlexibleForeignKey('FBAppUser')
 
     class Meta(object):
         db_table = 'client_app_users'
@@ -166,7 +166,7 @@ class ClientAppUser(BaseModel):
 
 class Event(BaseModel):
     event_id = BigSerialField(primary_key=True)
-    visit = models.ForeignKey('Visit')
+    visit = FlexibleForeignKey('Visit')
     event_type = models.CharField('Event Type', max_length=64)
     campaign = models.ForeignKey('Campaign')
     event_datetime = models.DateTimeField(db_index=True)
@@ -178,7 +178,7 @@ class Event(BaseModel):
 
 class Visit(BaseModel):
     visit_id = BigSerialField(primary_key=True)
-    visitor = models.ForeignKey('Visitor', related_name='visits')
+    visitor = FlexibleForeignKey('Visitor', related_name='visits')
     session_id = models.CharField(db_index=True, max_length=40)
     app_id = models.BigIntegerField(db_column='appid')
     ip = models.GenericIPAddressField()

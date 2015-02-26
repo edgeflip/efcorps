@@ -64,7 +64,7 @@ class Migration(SchemaMigration):
         # Adding model 'FBUserToken'
         db.create_table('fb_user_tokens', (
             ('user_token_id', self.gf('magnus.models.BigSerialField')(primary_key=True)),
-            ('app_user', self.gf('django.db.models.fields.related.ForeignKey')(to=orm['magnus.FBAppUser'])),
+            ('app_user', self.gf('magnus.models.FlexibleForeignKey')(to=orm['magnus.FBAppUser'])),
             ('access_token', self.gf('django.db.models.fields.TextField')()),
             ('expiration', self.gf('django.db.models.fields.DateTimeField')(db_index=True)),
             ('api', self.gf('django.db.models.fields.DecimalField')(default='2.2', max_digits=3, decimal_places=1)),
@@ -97,7 +97,7 @@ class Migration(SchemaMigration):
         db.create_table('client_app_users', (
             ('client_app_user_id', self.gf('magnus.models.BigSerialField')(primary_key=True)),
             ('client', self.gf('django.db.models.fields.related.ForeignKey')(to=orm['magnus.Client'])),
-            ('app_user', self.gf('django.db.models.fields.related.ForeignKey')(to=orm['magnus.FBAppUser'])),
+            ('app_user', self.gf('magnus.models.FlexibleForeignKey')(to=orm['magnus.FBAppUser'])),
             ('created', self.gf('django.db.models.fields.DateTimeField')(auto_now_add=True, blank=True)),
             ('updated', self.gf('django.db.models.fields.DateTimeField')(auto_now=True, blank=True)),
         ))
@@ -109,7 +109,7 @@ class Migration(SchemaMigration):
         # Adding model 'Event'
         db.create_table('events', (
             ('event_id', self.gf('magnus.models.BigSerialField')(primary_key=True)),
-            ('visit', self.gf('django.db.models.fields.related.ForeignKey')(to=orm['magnus.Visit'])),
+            ('visit', self.gf('magnus.models.FlexibleForeignKey')(to=orm['magnus.Visit'])),
             ('event_type', self.gf('django.db.models.fields.CharField')(max_length=64)),
             ('campaign', self.gf('django.db.models.fields.related.ForeignKey')(to=orm['magnus.Campaign'])),
             ('event_datetime', self.gf('django.db.models.fields.DateTimeField')(db_index=True)),
@@ -122,7 +122,7 @@ class Migration(SchemaMigration):
         # Adding model 'Visit'
         db.create_table('visits', (
             ('visit_id', self.gf('magnus.models.BigSerialField')(primary_key=True)),
-            ('visitor', self.gf('django.db.models.fields.related.ForeignKey')(related_name='visits', to=orm['magnus.Visitor'])),
+            ('visitor', self.gf('magnus.models.FlexibleForeignKey')(related_name='visits', to=orm['magnus.Visitor'])),
             ('session_id', self.gf('django.db.models.fields.CharField')(max_length=40, db_index=True)),
             ('app_id', self.gf('django.db.models.fields.BigIntegerField')(db_column='appid')),
             ('ip', self.gf('django.db.models.fields.GenericIPAddressField')(max_length=39)),
@@ -205,7 +205,7 @@ class Migration(SchemaMigration):
         },
         u'magnus.clientappuser': {
             'Meta': {'unique_together': "(('client', 'app_user'),)", 'object_name': 'ClientAppUser', 'db_table': "'client_app_users'"},
-            'app_user': ('django.db.models.fields.related.ForeignKey', [], {'to': u"orm['magnus.FBAppUser']"}),
+            'app_user': ('magnus.models.FlexibleForeignKey', [], {'to': u"orm['magnus.FBAppUser']"}),
             'client': ('django.db.models.fields.related.ForeignKey', [], {'to': u"orm['magnus.Client']"}),
             'client_app_user_id': ('magnus.models.BigSerialField', [], {'primary_key': 'True'}),
             'created': ('django.db.models.fields.DateTimeField', [], {'auto_now_add': 'True', 'blank': 'True'}),
@@ -228,7 +228,7 @@ class Migration(SchemaMigration):
             'event_id': ('magnus.models.BigSerialField', [], {'primary_key': 'True'}),
             'event_type': ('django.db.models.fields.CharField', [], {'max_length': '64'}),
             'updated': ('django.db.models.fields.DateTimeField', [], {'auto_now': 'True', 'blank': 'True'}),
-            'visit': ('django.db.models.fields.related.ForeignKey', [], {'to': u"orm['magnus.Visit']"})
+            'visit': ('magnus.models.FlexibleForeignKey', [], {'to': u"orm['magnus.Visit']"})
         },
         u'magnus.fbapp': {
             'Meta': {'ordering': "('name',)", 'object_name': 'FBApp', 'db_table': "'fb_apps'"},
@@ -267,7 +267,7 @@ class Migration(SchemaMigration):
             'Meta': {'object_name': 'FBUserToken', 'db_table': "'fb_user_tokens'"},
             'access_token': ('django.db.models.fields.TextField', [], {}),
             'api': ('django.db.models.fields.DecimalField', [], {'default': "'2.2'", 'max_digits': '3', 'decimal_places': '1'}),
-            'app_user': ('django.db.models.fields.related.ForeignKey', [], {'to': u"orm['magnus.FBAppUser']"}),
+            'app_user': ('magnus.models.FlexibleForeignKey', [], {'to': u"orm['magnus.FBAppUser']"}),
             'created': ('django.db.models.fields.DateTimeField', [], {'auto_now_add': 'True', 'blank': 'True'}),
             'expiration': ('django.db.models.fields.DateTimeField', [], {'db_index': 'True'}),
             'updated': ('django.db.models.fields.DateTimeField', [], {'auto_now': 'True', 'blank': 'True'}),
@@ -283,7 +283,7 @@ class Migration(SchemaMigration):
             'updated': ('django.db.models.fields.DateTimeField', [], {'auto_now': 'True', 'blank': 'True'}),
             'user_agent': ('django.db.models.fields.CharField', [], {'default': "''", 'max_length': '1028', 'blank': 'True'}),
             'visit_id': ('magnus.models.BigSerialField', [], {'primary_key': 'True'}),
-            'visitor': ('django.db.models.fields.related.ForeignKey', [], {'related_name': "'visits'", 'to': u"orm['magnus.Visitor']"})
+            'visitor': ('magnus.models.FlexibleForeignKey', [], {'related_name': "'visits'", 'to': u"orm['magnus.Visitor']"})
         },
         u'magnus.visitor': {
             'Meta': {'object_name': 'Visitor', 'db_table': "'visitors'"},
