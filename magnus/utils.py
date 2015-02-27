@@ -12,6 +12,9 @@ def get_or_create_efid(app_id, fbid, email, name):
             ef_user = EFUser(email=email, name=name)
         try:
             ef_user.save()
+        except IntegrityError:
+            ef_user = EFUser.objects.get(email=email)
+        try:
             app_user = FBAppUser(fb_app_id=app_id, fbid=fbid, ef_user=ef_user)
             app_user.save()
         except IntegrityError:
