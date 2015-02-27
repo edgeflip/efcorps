@@ -108,16 +108,17 @@ class FBAppUser(BaseModel):
     app_user_id = BigSerialField(primary_key=True)
     fb_app = models.ForeignKey('FBApp')
     fbid = models.BigIntegerField('App-scoped Facebook ID', db_index=True)
-    ef_user = FlexibleForeignKey('EFUser', db_column='efid')
+    ef_user = FlexibleForeignKey('EFUser', db_column='efid', related_name='app_users')
 
     class Meta(object):
         db_table = 'fb_app_users'
+        unique_together = ('fb_app', 'fbid')
 
 
 class EFUser(BaseModel):
     efid = BigSerialField(primary_key=True)
     name = models.CharField('Person Name', max_length=255, null=True, blank=True)
-    email = models.CharField('Email Address', max_length=255, db_index=True)
+    email = models.CharField('Email Address', max_length=255, db_index=True, null=True)
 
     class Meta(object):
         db_table = 'ef_users'
