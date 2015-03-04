@@ -155,10 +155,20 @@ class Client(BaseModel):
         db_table = 'clients'
 
 
+class FBAuthSource(BaseModel):
+    source_id = models.AutoField(primary_key=True)
+    slug = models.CharField('Referral Source', max_length=64)
+    pretty_name = models.CharField('Full Name', max_length=64)
+
+    class Meta(object):
+        db_table = 'fb_auth_sources'
+
+
 class ClientAppUser(BaseModel):
     client_app_user_id = BigSerialField(primary_key=True)
     client = models.ForeignKey('Client')
     app_user = FlexibleForeignKey('FBAppUser')
+    source = models.ForeignKey('FBAuthSource', null=True)
 
     class Meta(object):
         db_table = 'client_app_users'
