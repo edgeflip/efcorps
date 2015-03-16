@@ -1,4 +1,7 @@
+import hashlib
+import hmac
 import string
+import uuid
 from decimal import Decimal
 
 from django.conf import settings
@@ -39,7 +42,7 @@ class FBApp(base.BaseModel):
     # covered by the FBApp.current_permissions descriptor (and the
     # FBPermission.current_apps manager).
 
-    class Meta(object):
+    class Meta(base.BaseModel.Meta):
         db_table = 'fb_apps'
         ordering = ('namespace',)
 
@@ -72,7 +75,7 @@ class FBPermission(base.BaseModel):
         def __str__(self):
             return self.value
 
-    class Meta(object):
+    class Meta(base.BaseModel.Meta):
         db_table = 'fb_permissions'
         ordering = ('code',)
 
@@ -94,7 +97,7 @@ class FBAppUser(base.BaseModel):
                                         related_name=related_name,
                                         related_query_name=related_query_name)
 
-    class Meta(object):
+    class Meta(base.BaseModel.Meta):
         db_table = 'fb_app_users'
         unique_together = (('fbid', 'fb_app'), ('ef_user', 'fb_app'))
 
@@ -109,7 +112,7 @@ class EFUser(base.BaseModel):
     name = models.CharField(max_length=255, blank=True)
     email = models.EmailField('E-mail Address', max_length=254, unique=True, null=True, blank=True)
 
-    class Meta(object):
+    class Meta(base.BaseModel.Meta):
         db_table = 'ef_users'
 
     def __unicode__(self):
@@ -132,7 +135,7 @@ class FBUserToken(base.BaseModel):
     # DEFERRED: we could record the permissions granted through the token (via
     # another many-to-many with FBPermission).
 
-    class Meta(object):
+    class Meta(base.BaseModel.Meta):
         db_table = 'fb_user_tokens'
         get_latest_by = 'expiration'
         unique_together = ('api', 'fb_app_user')
@@ -150,7 +153,7 @@ class Campaign(base.BaseModel):
     name = models.CharField('Campaign Name', max_length=255)
     client = models.ForeignKey('magnus.Client', related_name='campaigns')
 
-    class Meta(object):
+    class Meta(base.BaseModel.Meta):
         db_table = 'campaigns'
 
     def __unicode__(self):
@@ -174,7 +177,7 @@ class Client(base.BaseModel):
     # addition of FBAppUsers to a Client; rather, you must create (and delete)
     # ClientFBAppUsers.
 
-    class Meta(object):
+    class Meta(base.BaseModel.Meta):
         db_table = 'clients'
 
     def set_codename(self):
@@ -211,7 +214,7 @@ class ClientFBAppUser(base.BaseModel):
     # NOTE: Reverse managers are useful, but here suppressed ('+'), to avoid
     # confusion with the direct Client <=> FBAppUser relationship.
 
-    class Meta(object):
+    class Meta(base.BaseModel.Meta):
         db_table = 'clients_fb_app_users'
         unique_together = ('client', 'fb_app_user')
 
@@ -232,7 +235,7 @@ class Event(base.BaseModel):
     event_datetime = models.DateTimeField(db_index=True, default=timezone.now)
     data = fields.JSONField()
 
-    class Meta(object):
+    class Meta(base.BaseModel.Meta):
         db_table = 'events'
         ordering = ('event_datetime',)
 
@@ -268,7 +271,7 @@ class Visit(base.BaseModel):
     referer = models.CharField(blank=True, max_length=1028)
     source = models.SlugField(blank=True)
 
-    class Meta(object):
+    class Meta(base.BaseModel.Meta):
         db_table = 'visits'
         get_latest_by = 'created'
         unique_together = ('session_id', 'fb_app')
@@ -303,7 +306,7 @@ class VisitorAgent(base.BaseModel):
     # not support addition of VisitorAgents to an EFUser; rather, you must
     # create (and delete) EFUserVisitorAgents.
 
-    class Meta(object):
+    class Meta(base.BaseModel.Meta):
         db_table = 'visitor_agents'
 
     @classmethod
@@ -346,6 +349,55 @@ class EFUserVisitorAgent(base.BaseModel):
     ef_user = fields.FlexibleForeignKey('magnus.EFUser', db_column='efid', related_name='+')
     visitor_agent = fields.FlexibleForeignKey('magnus.VisitorAgent', related_name='+')
 
-    class Meta(object):
+    class Meta(base.BaseModel.Meta):
         db_table = 'ef_users_visitor_agents'
         unique_together = ('ef_user', 'visitor_agent')
+
+
+class EFApp(base.BaseModel):
+    """An Edgeflip app (providing an API)."""
+
+    name = models.SlugField(primary_key=True, max_length=30, db_column='ef_app_name')
+
+    class Meta(base.BaseModel.Meta):
+        db_table = 'ef_apps'
+
+
+class EFApiUser(base.BaseModel):
+    """A consumer of an Edgeflip app's API."""
+
+    name = models.SlugField(primary_key=True, max_length=30, db_column='ef_api_user_name')
+
+    class Meta(base.BaseModel.Meta):
+        db_table = 'ef_api_users'
+
+
+def generate_api_key():
+    """Construct a new (ostensibly-unique) API key."""
+    unique = uuid.uuid4()
+    code = hmac.new(unique.bytes, digestmod=hashlib.sha1)
+    return code.hexdigest()
+
+
+class EFApiKey(base.BaseModel):
+    """An Edgeflip API consumer's authentication key."""
+
+    key = models.SlugField(primary_key=True,
+                           default=generate_api_key,
+                           max_length=40,
+                           db_column='ef_api_key')
+
+    ef_api_user = models.ForeignKey('magnus.EFApiUser',
+                                    db_column='ef_api_user_name',
+                                    related_name='efapikeys')
+
+    ef_app = models.ForeignKey('magnus.EFApp',
+                               db_column='ef_app_name',
+                               related_name='efapikeys')
+
+    generate_key = staticmethod(generate_api_key)
+
+    class Meta(base.BaseModel.Meta):
+        db_table = 'ef_api_keys'
+
+# DEFERRED: ApiPermissions (off of EFApiUser or EFApiKey?)
