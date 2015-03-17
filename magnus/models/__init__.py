@@ -147,11 +147,105 @@ class FBUserToken(base.BaseModel):
         return '<{}: {} [{}]>'.format(self.__class__.__name__, self.fb_app_user_id, self.api)
 
 
+class ClientContent(base.BaseModel):
+
+    client_content_id = models.AutoField(primary_key=True)
+    client = models.ForeignKey('magnus.Client', related_name='client_content')
+    name = models.CharField(max_length=256, blank=True, null=True)
+    description = models.CharField(max_length=1024, blank=True)
+    url = models.URLField(max_length=2048)
+
+    class Meta(base.BaseModel.Meta):
+        db_table = 'client_content'
+        unique_together = (('name', 'client'), ('url', 'client'))
+
+    def __unicode__(self):
+        return self.name or self.url
+
+    def __repr__(self):
+        signature = self.url[:47] + '...' if len(self.url) > 50 else self.url
+        if self.name:
+            signature += ' [{}]'.format(self.name)
+        return '<{}: {}>'.format(self.__class__.__name__, signature)
+
+
+class VehicleOwner(base.BaseModel):
+
+    codename = models.SlugField(max_length=25, primary_key=True)
+
+    objects = manager.TypeObjectManager()
+
+    class Codenames(objects.Types):
+
+        EDGEFLIP = 'edgeflip'
+        FACEBOOK = 'facebook'
+
+        def __str__(self):
+            return self.value
+
+    class Meta(base.BaseModel.Meta):
+        db_table = 'vehicle_owners'
+        ordering = ('codename',)
+
+    def __unicode__(self):
+        return self.codename
+
+
+class ContentVehicle(base.BaseModel):
+
+    name = models.CharField(max_length=100)
+    codename = models.SlugField(primary_key=True)
+    vehicle_owner = models.ForeignKey('magnus.VehicleOwner', related_name='content_vehicles')
+
+    objects = manager.TypeObjectManager()
+
+    class Codenames(objects.Types):
+
+        EF_TARGETED_SHARE = 'ef_targeted_share'
+        FB_NOTIFICATION = 'fb_notification'
+        FB_POST = 'fb_post'
+
+        def __str__(self):
+            return self.value
+
+    class Meta(base.BaseModel.Meta):
+        db_table = 'content_vehicles'
+        ordering = ('codename',)
+
+    def __unicode__(self):
+        return self.name
+
+    def __repr__(self):
+        return u"<{}: {}>".format(self.__class__.__name__, self.codename)
+
+
+class ContentVehicleCampaign(base.BaseModel):
+
+    related_name = 'content_vehicle_campaigns'
+
+    content_vehicle_campaign_id = models.AutoField(primary_key=True)
+    urn = models.CharField("Vehicle Resource Name", max_length=30) # indexed below
+    content_vehicle = models.ForeignKey('magnus.ContentVehicle', related_name=related_name)
+    campaign = models.ForeignKey('magnus.Campaign', related_name=related_name)
+
+    class Meta(base.BaseModel.Meta):
+        db_table = 'content_vehicle_campaigns'
+        unique_together = ('urn', 'content_vehicle')
+
+    def __unicode__(self):
+        return self.urn
+
+    def __repr__(self):
+        return u"<{}: {} [{}]>".format(self.__class__.__name__,
+                                       self.urn,
+                                       self.content_vehicle.codename)
+
+
 class Campaign(base.BaseModel):
 
     campaign_id = models.AutoField(primary_key=True)
     name = models.CharField('Campaign Name', max_length=255)
-    client = models.ForeignKey('magnus.Client', related_name='campaigns')
+    client_content = models.ForeignKey('magnus.ClientContent', related_name='campaigns')
 
     class Meta(base.BaseModel.Meta):
         db_table = 'campaigns'
