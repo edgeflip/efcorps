@@ -6,45 +6,40 @@ from south.v2 import SchemaMigration
 class Migration(SchemaMigration):
 
     def forwards(self, orm):
-        # Adding model 'ContentVehicleCampaign'
-        db.create_table('content_vehicle_campaigns', (
-            ('content_vehicle_campaign_id', self.gf('django.db.models.fields.AutoField')(primary_key=True)),
-            ('urn', self.gf('django.db.models.fields.CharField')(max_length=30)),
-            ('content_vehicle', self.gf('django.db.models.fields.related.ForeignKey')(related_name='content_vehicle_campaigns', to=orm['magnus.ContentVehicle'])),
-            ('campaign', self.gf('django.db.models.fields.related.ForeignKey')(related_name='content_vehicle_campaigns', to=orm['magnus.Campaign'])),
-            ('created', self.gf('django.db.models.fields.DateTimeField')(auto_now_add=True, blank=True)),
-            ('updated', self.gf('django.db.models.fields.DateTimeField')(auto_now=True, blank=True)),
-        ))
-        db.send_create_signal(u'magnus', ['ContentVehicleCampaign'])
-
-        # Adding unique constraint on 'ContentVehicleCampaign', fields ['urn', 'content_vehicle']
-        db.create_unique('content_vehicle_campaigns', ['urn', 'content_vehicle_id'])
+        # Deleting model 'Campaign'
+        db.delete_table('campaigns')
 
         # Adding model 'ContentVehicle'
         db.create_table('content_vehicles', (
-            ('codename', self.gf('django.db.models.fields.SlugField')(max_length=50, primary_key=True)),
-            ('name', self.gf('django.db.models.fields.CharField')(max_length=100)),
-            ('vehicle_owner', self.gf('django.db.models.fields.related.ForeignKey')(related_name='content_vehicles', to=orm['magnus.VehicleOwner'])),
+            ('content_vehicle_id', self.gf('django.db.models.fields.AutoField')(primary_key=True)),
+            ('urn', self.gf('django.db.models.fields.CharField')(max_length=30)),
+            ('content_vehicle_type', self.gf('django.db.models.fields.related.ForeignKey')(related_name='content_vehicles', to=orm['magnus.ContentVehicleType'])),
+            ('intermediate_vehicle', self.gf('django.db.models.fields.related.ForeignKey')(blank=True, related_name='linking_vehicles', null=True, to=orm['magnus.ContentVehicle'])),
+            ('client_content', self.gf('django.db.models.fields.related.ForeignKey')(related_name='content_vehicles', to=orm['magnus.ClientContent'])),
             ('created', self.gf('django.db.models.fields.DateTimeField')(auto_now_add=True, blank=True)),
             ('updated', self.gf('django.db.models.fields.DateTimeField')(auto_now=True, blank=True)),
         ))
         db.send_create_signal(u'magnus', ['ContentVehicle'])
 
-        # Adding model 'VehicleOwner'
-        db.create_table('vehicle_owners', (
-            ('codename', self.gf('django.db.models.fields.SlugField')(max_length=25, primary_key=True)),
+        # Adding unique constraint on 'ContentVehicle', fields ['urn', 'content_vehicle_type']
+        db.create_unique('content_vehicles', ['urn', 'content_vehicle_type_id'])
+
+        # Adding model 'ContentVehicleType'
+        db.create_table('content_vehicle_types', (
+            ('codename', self.gf('django.db.models.fields.SlugField')(max_length=50, primary_key=True)),
+            ('name', self.gf('django.db.models.fields.CharField')(max_length=100)),
             ('created', self.gf('django.db.models.fields.DateTimeField')(auto_now_add=True, blank=True)),
             ('updated', self.gf('django.db.models.fields.DateTimeField')(auto_now=True, blank=True)),
         ))
-        db.send_create_signal(u'magnus', ['VehicleOwner'])
+        db.send_create_signal(u'magnus', ['ContentVehicleType'])
 
         # Adding model 'ClientContent'
         db.create_table('client_content', (
             ('client_content_id', self.gf('django.db.models.fields.AutoField')(primary_key=True)),
+            ('client', self.gf('django.db.models.fields.related.ForeignKey')(related_name='client_content', to=orm['magnus.Client'])),
             ('name', self.gf('django.db.models.fields.CharField')(max_length=256, null=True, blank=True)),
             ('description', self.gf('django.db.models.fields.CharField')(max_length=1024, blank=True)),
             ('url', self.gf('django.db.models.fields.URLField')(max_length=2048)),
-            ('client', self.gf('django.db.models.fields.related.ForeignKey')(related_name='client_content', to=orm['magnus.Client'])),
             ('created', self.gf('django.db.models.fields.DateTimeField')(auto_now_add=True, blank=True)),
             ('updated', self.gf('django.db.models.fields.DateTimeField')(auto_now=True, blank=True)),
         ))
@@ -56,12 +51,13 @@ class Migration(SchemaMigration):
         # Adding unique constraint on 'ClientContent', fields ['url', 'client']
         db.create_unique('client_content', ['url', 'client_id'])
 
-        # Deleting field 'Campaign.client'
-        db.delete_column('campaigns', 'client_id')
+        # Deleting field 'Event.campaign'
+        db.delete_column('events', 'campaign_id')
 
-        # Adding field 'Campaign.client_content'
-        db.add_column('campaigns', 'client_content',
-                      self.gf('django.db.models.fields.related.ForeignKey')(related_name='campaigns', to=orm['magnus.ClientContent']))
+        # Adding field 'Event.content_vehicle'
+        db.add_column('events', 'content_vehicle',
+                      self.gf('django.db.models.fields.related.ForeignKey')(related_name='events', null=True, to=orm['magnus.ContentVehicle']),
+                      keep_default=False)
 
     def backwards(self, orm):
         # Removing unique constraint on 'ClientContent', fields ['url', 'client']
@@ -70,37 +66,37 @@ class Migration(SchemaMigration):
         # Removing unique constraint on 'ClientContent', fields ['name', 'client']
         db.delete_unique('client_content', ['name', 'client_id'])
 
-        # Removing unique constraint on 'ContentVehicleCampaign', fields ['urn', 'content_vehicle']
-        db.delete_unique('content_vehicle_campaigns', ['urn', 'content_vehicle_id'])
+        # Removing unique constraint on 'ContentVehicle', fields ['urn', 'content_vehicle_type']
+        db.delete_unique('content_vehicles', ['urn', 'content_vehicle_type_id'])
 
-        # Deleting model 'ContentVehicleCampaign'
-        db.delete_table('content_vehicle_campaigns')
+        # Adding model 'Campaign'
+        db.create_table('campaigns', (
+            ('campaign_id', self.gf('django.db.models.fields.AutoField')(primary_key=True)),
+            ('name', self.gf('django.db.models.fields.CharField')(max_length=255)),
+            ('client', self.gf('django.db.models.fields.related.ForeignKey')(related_name='campaigns', to=orm['magnus.Client'])),
+            ('created', self.gf('django.db.models.fields.DateTimeField')(auto_now_add=True, blank=True)),
+            ('updated', self.gf('django.db.models.fields.DateTimeField')(auto_now=True, blank=True)),
+        ))
+        db.send_create_signal(u'magnus', ['Campaign'])
 
         # Deleting model 'ContentVehicle'
         db.delete_table('content_vehicles')
 
-        # Deleting model 'VehicleOwner'
-        db.delete_table('vehicle_owners')
+        # Deleting model 'ContentVehicleType'
+        db.delete_table('content_vehicle_types')
 
         # Deleting model 'ClientContent'
         db.delete_table('client_content')
 
-        # Adding field 'Campaign.client'
-        db.add_column('campaigns', 'client',
-                      self.gf('django.db.models.fields.related.ForeignKey')(related_name='campaigns', to=orm['magnus.Client']))
+        # Adding field 'Event.campaign'
+        db.add_column('events', 'campaign',
+                      self.gf('django.db.models.fields.related.ForeignKey')(related_name='events', null=True, to=orm['magnus.Campaign']),
+                      keep_default=False)
 
-        # Deleting field 'Campaign.client_content'
-        db.delete_column('campaigns', 'client_content_id')
+        # Deleting field 'Event.content_vehicle'
+        db.delete_column('events', 'content_vehicle_id')
 
     models = {
-        u'magnus.campaign': {
-            'Meta': {'object_name': 'Campaign', 'db_table': "'campaigns'"},
-            'campaign_id': ('django.db.models.fields.AutoField', [], {'primary_key': 'True'}),
-            'client_content': ('django.db.models.fields.related.ForeignKey', [], {'related_name': "'campaigns'", 'to': u"orm['magnus.ClientContent']"}),
-            'created': ('django.db.models.fields.DateTimeField', [], {'auto_now_add': 'True', 'blank': 'True'}),
-            'name': ('django.db.models.fields.CharField', [], {'max_length': '255'}),
-            'updated': ('django.db.models.fields.DateTimeField', [], {'auto_now': 'True', 'blank': 'True'})
-        },
         u'magnus.client': {
             'Meta': {'object_name': 'Client', 'db_table': "'clients'"},
             'client_id': ('django.db.models.fields.AutoField', [], {'primary_key': 'True'}),
@@ -129,28 +125,28 @@ class Migration(SchemaMigration):
             'updated': ('django.db.models.fields.DateTimeField', [], {'auto_now': 'True', 'blank': 'True'})
         },
         u'magnus.contentvehicle': {
-            'Meta': {'ordering': "('codename',)", 'object_name': 'ContentVehicle', 'db_table': "'content_vehicles'"},
+            'Meta': {'unique_together': "(('urn', 'content_vehicle_type'),)", 'object_name': 'ContentVehicle', 'db_table': "'content_vehicles'"},
+            'client_content': ('django.db.models.fields.related.ForeignKey', [], {'related_name': "'content_vehicles'", 'to': u"orm['magnus.ClientContent']"}),
+            'content_vehicle_id': ('django.db.models.fields.AutoField', [], {'primary_key': 'True'}),
+            'content_vehicle_type': ('django.db.models.fields.related.ForeignKey', [], {'related_name': "'content_vehicles'", 'to': u"orm['magnus.ContentVehicleType']"}),
+            'created': ('django.db.models.fields.DateTimeField', [], {'auto_now_add': 'True', 'blank': 'True'}),
+            'intermediate_vehicle': ('django.db.models.fields.related.ForeignKey', [], {'blank': 'True', 'related_name': "'linking_vehicles'", 'null': 'True', 'to': u"orm['magnus.ContentVehicle']"}),
+            'updated': ('django.db.models.fields.DateTimeField', [], {'auto_now': 'True', 'blank': 'True'}),
+            'urn': ('django.db.models.fields.CharField', [], {'max_length': '30'})
+        },
+        u'magnus.contentvehicletype': {
+            'Meta': {'ordering': "('codename',)", 'object_name': 'ContentVehicleType', 'db_table': "'content_vehicle_types'"},
             'codename': ('django.db.models.fields.SlugField', [], {'max_length': '50', 'primary_key': 'True'}),
             'created': ('django.db.models.fields.DateTimeField', [], {'auto_now_add': 'True', 'blank': 'True'}),
             'name': ('django.db.models.fields.CharField', [], {'max_length': '100'}),
-            'updated': ('django.db.models.fields.DateTimeField', [], {'auto_now': 'True', 'blank': 'True'}),
-            'vehicle_owner': ('django.db.models.fields.related.ForeignKey', [], {'related_name': "'content_vehicles'", 'to': u"orm['magnus.VehicleOwner']"})
-        },
-        u'magnus.contentvehiclecampaign': {
-            'Meta': {'unique_together': "(('urn', 'content_vehicle'),)", 'object_name': 'ContentVehicleCampaign', 'db_table': "'content_vehicle_campaigns'"},
-            'campaign': ('django.db.models.fields.related.ForeignKey', [], {'related_name': "'content_vehicle_campaigns'", 'to': u"orm['magnus.Campaign']"}),
-            'content_vehicle': ('django.db.models.fields.related.ForeignKey', [], {'related_name': "'content_vehicle_campaigns'", 'to': u"orm['magnus.ContentVehicle']"}),
-            'content_vehicle_campaign_id': ('django.db.models.fields.AutoField', [], {'primary_key': 'True'}),
-            'created': ('django.db.models.fields.DateTimeField', [], {'auto_now_add': 'True', 'blank': 'True'}),
-            'updated': ('django.db.models.fields.DateTimeField', [], {'auto_now': 'True', 'blank': 'True'}),
-            'urn': ('django.db.models.fields.CharField', [], {'max_length': '30'})
+            'updated': ('django.db.models.fields.DateTimeField', [], {'auto_now': 'True', 'blank': 'True'})
         },
         u'magnus.efapikey': {
             'Meta': {'object_name': 'EFApiKey', 'db_table': "'ef_api_keys'"},
             'created': ('django.db.models.fields.DateTimeField', [], {'auto_now_add': 'True', 'blank': 'True'}),
             'ef_api_user': ('django.db.models.fields.related.ForeignKey', [], {'related_name': "'efapikeys'", 'db_column': "'ef_api_user_name'", 'to': u"orm['magnus.EFApiUser']"}),
             'ef_app': ('django.db.models.fields.related.ForeignKey', [], {'related_name': "'efapikeys'", 'db_column': "'ef_app_name'", 'to': u"orm['magnus.EFApp']"}),
-            'key': ('django.db.models.fields.SlugField', [], {'default': "'3f0988181c86edc40d25ec077ee47dcb57b9fd78'", 'max_length': '40', 'primary_key': 'True', 'db_column': "'ef_api_key'"}),
+            'key': ('django.db.models.fields.SlugField', [], {'default': "'7894eb6b702cede7ff8d9872bfc71b9c6260e7d5'", 'max_length': '40', 'primary_key': 'True', 'db_column': "'ef_api_key'"}),
             'updated': ('django.db.models.fields.DateTimeField', [], {'auto_now': 'True', 'blank': 'True'})
         },
         u'magnus.efapiuser': {
@@ -183,7 +179,7 @@ class Migration(SchemaMigration):
         },
         u'magnus.event': {
             'Meta': {'ordering': "('event_datetime',)", 'object_name': 'Event', 'db_table': "'events'"},
-            'campaign': ('django.db.models.fields.related.ForeignKey', [], {'related_name': "'events'", 'null': 'True', 'to': u"orm['magnus.Campaign']"}),
+            'content_vehicle': ('django.db.models.fields.related.ForeignKey', [], {'related_name': "'events'", 'null': 'True', 'to': u"orm['magnus.ContentVehicle']"}),
             'created': ('django.db.models.fields.DateTimeField', [], {'auto_now_add': 'True', 'blank': 'True'}),
             'data': ('magnus.models.fields.JSONField', [], {}),
             'event_datetime': ('django.db.models.fields.DateTimeField', [], {'default': 'datetime.datetime.now', 'db_index': 'True'}),
@@ -225,12 +221,6 @@ class Migration(SchemaMigration):
             'expiration': ('django.db.models.fields.DateTimeField', [], {'db_index': 'True'}),
             'fb_app_user': ('magnus.models.fields.FlexibleForeignKey', [], {'related_name': "'fb_user_tokens'", 'to': u"orm['magnus.FBAppUser']"}),
             'fb_user_token_id': ('magnus.models.fields.BigSerialField', [], {'primary_key': 'True'}),
-            'updated': ('django.db.models.fields.DateTimeField', [], {'auto_now': 'True', 'blank': 'True'})
-        },
-        u'magnus.vehicleowner': {
-            'Meta': {'ordering': "('codename',)", 'object_name': 'VehicleOwner', 'db_table': "'vehicle_owners'"},
-            'codename': ('django.db.models.fields.SlugField', [], {'max_length': '25', 'primary_key': 'True'}),
-            'created': ('django.db.models.fields.DateTimeField', [], {'auto_now_add': 'True', 'blank': 'True'}),
             'updated': ('django.db.models.fields.DateTimeField', [], {'auto_now': 'True', 'blank': 'True'})
         },
         u'magnus.visit': {

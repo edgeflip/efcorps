@@ -5,6 +5,7 @@ import uuid
 from decimal import Decimal
 
 from django.conf import settings
+from django.core import exceptions
 from django.db import models
 from django.utils import timezone
 from django.utils.crypto import get_random_string
@@ -148,12 +149,13 @@ class FBUserToken(base.BaseModel):
 
 
 class ClientContent(base.BaseModel):
+    """A Web resource which the client intends to promote."""
 
     client_content_id = models.AutoField(primary_key=True)
     client = models.ForeignKey('magnus.Client', related_name='client_content')
-    name = models.CharField(max_length=256, blank=True, null=True)
+    name = models.CharField(max_length=256, blank=True, null=True) # indexed below
     description = models.CharField(max_length=1024, blank=True)
-    url = models.URLField(max_length=2048)
+    url = models.URLField(max_length=2048) # indexed below
 
     class Meta(base.BaseModel.Meta):
         db_table = 'client_content'
@@ -166,36 +168,16 @@ class ClientContent(base.BaseModel):
         signature = self.url[:47] + '...' if len(self.url) > 50 else self.url
         if self.name:
             signature += ' [{}]'.format(self.name)
-        return '<{}: {}>'.format(self.__class__.__name__, signature)
+        return u'<{}: {}>'.format(self.__class__.__name__, signature)
 
 
-class VehicleOwner(base.BaseModel):
+class ContentVehicleType(base.BaseModel):
+    """Any distinct class of Web app, view or feature, which is used to drive
+    user traffic to clients' content.
 
-    codename = models.SlugField(max_length=25, primary_key=True)
-
-    objects = manager.TypeObjectManager()
-
-    class Codenames(objects.Types):
-
-        EDGEFLIP = 'edgeflip'
-        FACEBOOK = 'facebook'
-
-        def __str__(self):
-            return self.value
-
-    class Meta(base.BaseModel.Meta):
-        db_table = 'vehicle_owners'
-        ordering = ('codename',)
-
-    def __unicode__(self):
-        return self.codename
-
-
-class ContentVehicle(base.BaseModel):
-
-    name = models.CharField(max_length=100)
+    """
     codename = models.SlugField(primary_key=True)
-    vehicle_owner = models.ForeignKey('magnus.VehicleOwner', related_name='content_vehicles')
+    name = models.CharField(max_length=100)
 
     objects = manager.TypeObjectManager()
 
@@ -209,7 +191,7 @@ class ContentVehicle(base.BaseModel):
             return self.value
 
     class Meta(base.BaseModel.Meta):
-        db_table = 'content_vehicles'
+        db_table = 'content_vehicle_types'
         ordering = ('codename',)
 
     def __unicode__(self):
@@ -219,18 +201,70 @@ class ContentVehicle(base.BaseModel):
         return u"<{}: {}>".format(self.__class__.__name__, self.codename)
 
 
-class ContentVehicleCampaign(base.BaseModel):
+class ContentVehicle(base.BaseModel):
+    """A concrete, user-consumable instance of a ContentVehicleType, such as a
+    particular blog post or an email using particular content.
 
-    related_name = 'content_vehicle_campaigns'
+    In some, though not all cases, a ContentVehicle is an abstraction of what is
+    sometimes called a "campaign", (e.g. email). However, ContentVehicles do not
+    make all the assumptions of a campaign.
 
-    content_vehicle_campaign_id = models.AutoField(primary_key=True)
+    ContentVehicles need only identify their type, the ClientContent to which
+    they are intended to drive traffic, and some unique identifier -- the `urn`,
+    or Uniform Resource Name. (Here, the "resource" is the "vehicle". The
+    existing vernacular of Uniform Resource Indicators trumps anything we could
+    come up with. For the resource to which the content vehicle drives traffic,
+    see its ClientContent's `url`, or Uniform Resource Locator.)
+
+    The vehicle URN should be the canonical, and minimally necessary, identifier
+    with which the vehicle may be retrieved. For example, the numeric string
+    `10206332515695927` is necessary to identify a Facebook post -- divorced
+    from the various means and formats of receiving it -- and is therefore
+    sufficient as a URN. (The full URL by which this resource *might* be
+    retrieved, `https://www.facebook.com/10206332515695927`, is *not* an
+    appropriate URN; such an endpoint URL may be constructed by any process with
+    knowledge about Facebook posts, given its needs.)
+
+    Rather than point directly to its ClientContent, a ContentVehicle may
+    optionally point to another ContentVehicle, regardless of when and with
+    what intent each was created -- (here differing from a "campaign") -- via
+    `intermediate_vehicle`; however, a ContentVehicle should never be made the
+    intermediate for another ContentVehicle which serves differing
+    ClientContent! To do so would make a liar out of the latter
+    ContentVehicle's (or "linking vehicles"'s) `client_content`.
+
+    See the instance method `linkable_vehicles`, which returns a QuerySet of
+    ContentVehicles serving the same ClientContent as the instance.
+    `ContentVehicle.save()` further validates that any intermediate vehicle
+    serve matching client content, (though, because this constraint is not
+    enforceable by the database, it may be circumvented).
+
+    """
+    related_name = 'content_vehicles'
+
+    content_vehicle_id = models.AutoField(primary_key=True)
     urn = models.CharField("Vehicle Resource Name", max_length=30) # indexed below
-    content_vehicle = models.ForeignKey('magnus.ContentVehicle', related_name=related_name)
-    campaign = models.ForeignKey('magnus.Campaign', related_name=related_name)
+    content_vehicle_type = models.ForeignKey('magnus.ContentVehicleType',
+                                             related_name=related_name)
+    intermediate_vehicle = models.ForeignKey('self', blank=True, null=True,
+                                             related_name='linking_vehicles')
+    client_content = models.ForeignKey('magnus.ClientContent',
+                                       related_name=related_name)
 
     class Meta(base.BaseModel.Meta):
-        db_table = 'content_vehicle_campaigns'
-        unique_together = ('urn', 'content_vehicle')
+        db_table = 'content_vehicles'
+        unique_together = ('urn', 'content_vehicle_type')
+
+    def linkable_vehicles(self):
+        return self._default_manager.filter(client_content_id=self.client_content_id)
+
+    def save(self, *args, **kws):
+        intermediate = self.intermediate_vehicle
+        if intermediate and intermediate.client_content_id != self.client_content_id:
+            raise exceptions.ValidationError(
+                "intermediate vehicle's ClientContent must match that of the linking vehicle"
+            )
+        return super(ContentVehicle, self).save(*args, **kws)
 
     def __unicode__(self):
         return self.urn
@@ -238,24 +272,11 @@ class ContentVehicleCampaign(base.BaseModel):
     def __repr__(self):
         return u"<{}: {} [{}]>".format(self.__class__.__name__,
                                        self.urn,
-                                       self.content_vehicle.codename)
-
-
-class Campaign(base.BaseModel):
-
-    campaign_id = models.AutoField(primary_key=True)
-    name = models.CharField('Campaign Name', max_length=255)
-    client_content = models.ForeignKey('magnus.ClientContent', related_name='campaigns')
-
-    class Meta(base.BaseModel.Meta):
-        db_table = 'campaigns'
-
-    def __unicode__(self):
-        return self.name
+                                       self.content_vehicle_type.codename)
 
 
 class Client(base.BaseModel):
-    """A business client, for whom we engage FBAppUsers, through Campaigns."""
+    """A business client, for whom we engage FBAppUsers, through ContentVehicles."""
 
     client_id = models.AutoField(primary_key=True)
     name = models.CharField('Client Name', max_length=255)
@@ -289,7 +310,7 @@ class Client(base.BaseModel):
         return self.name
 
     def __repr__(self):
-        return "<{}: {}>".format(self.__class__.__name__, self.codename)
+        return u"<{}: {}>".format(self.__class__.__name__, self.codename)
 
 
 class ClientFBAppUser(base.BaseModel):
@@ -325,7 +346,7 @@ class Event(base.BaseModel):
     event_id = fields.BigSerialField(primary_key=True)
     visit = fields.FlexibleForeignKey('magnus.Visit', related_name='events')
     event_type = models.CharField('Event Type', max_length=64)
-    campaign = models.ForeignKey('magnus.Campaign', null=True, related_name='events')
+    content_vehicle = models.ForeignKey('magnus.ContentVehicle', null=True, related_name='events')
     event_datetime = models.DateTimeField(db_index=True, default=timezone.now)
     data = fields.JSONField()
 
